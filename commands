@@ -1,0 +1,123 @@
+docker pull filename
+docker ps -->shows currently running docker files
+docker run -it image_name -->creates an interactive interface to access image
+docker run image_name ==> creates a container of that image in an exited state
+docker run -it --rm image)_name --> deletes container as the interactive env is exited
+docker run --detach -it image_name -->background me running a container(-it is must to run in background) 
+docker attach docker_id --> enters in that running container
+docker rm container_name --> remove the container if its not in running state
+
+docker rm -f container_name --> removes the container even if its in running state
+docker run -it --detach --name custom_name image_name ==> runs in background due to -it and gives custom name due to --name
+docker kill container_id --> container goes in exit state
+tags in docket --> that specific version of image rahega jiska container Banega yaani images ka version mark ya name krne ke liye tags uniquely identify krta
+docker exec -it container_name command :Run a command inside an already-running Docker container, interactively.
+docker start container_name : starts an exited container
+docker ps -a  : shows every container either exited or running
+docker build -t <cutstom_image_name> path_of_the_dockerfile: builds a new custom image with this custom name, usually path = . if in that folder currently
+docker run custom_image_name : It makes a container of this image
+docker start container_name : starts the container which is in exited state
+docker images : shows all the images present
+docker rm container_id : removes the container
+docker rmi image_name : removes the images
+docker run --it --init --publish HOST_PORT:CONTAINER_POST image_name : init se creates a PID 1 as init process and interrupt signal can be sent like ctr c in host machine for killing the process , server band ho jayega if on hai and publish keyword for interaction of host_port with container_port,
+docker run --it --init -p 8000:8000 image_name: So a request arriving at the host's port 8000 is forwarded to port 8000 of the container.
+
+
+#code for dockerfile
+# Dockerfile
+
+FROM node
+# → Base image.
+# → Provides a Linux userspace/root filesystem containing Node.js, npm,
+#   and the libraries/files needed by Node.js.
+
+WORKDIR basic_node_js/backend/
+# → Creates this directory inside the image's filesystem (if it doesn't exist)
+#   and makes it the current working directory for subsequent instructions.
+
+COPY . .
+# → Copies the contents of the Docker build context into the current
+#   WORKDIR inside the image.
+# → With `docker build .`, the first `.` refers to the build context
+#   (usually your current host directory), and the second `.` refers
+#   to the current WORKDIR inside the image.
+
+RUN npm ci
+# → Executes `npm ci` while BUILDING the image.
+# → Installs the dependencies from package-lock.json into node_modules.
+
+CMD ["node", "server.js"]
+# → Specifies the default command that will be executed when a
+#   CONTAINER is started from this image.
+
+clone the direc from GitHub Nd then build image then run this command
+#docker run -it --init -p 8000:8000  -v "$(pwd)":WORKDIR(mentioned in dockerfile)  image_name
+-v "pwd":Wokrdir does is
+#bind mount does is :
+"At this particular directory inside the container, use the files from this host directory instead of the files that were already there from the image."
+So when you edit:
+
+src/server.js
+
+on your computer, the container immediately sees the changed file.
+
+That's why volumes/bind mounts are extremely useful with Docker development environments.
+
+
+#docker volume create tag_name : use of volume, Keep important data independent of the container's lifecycle.
+#docker -v volumename:/directory/which/we/want to persist/ 
+Issue is in first bind mount container is instructed toi use host's files instead of container and node modules of host machine eg windows cant run on linux env so we create a volume which would tell the container dont use host's files for this specific directory instead use volume stored node modules if no data in volume exits container copies content from the image which was built to avoid node modules conflict
+It's saying "use this separate volume for at /app/node_modules ." If that volume is initially empty, Docker may populate it from the 
+existing image contents at that mount point when the container is first created. After that, the volume has its own contents.
+
+------------creatng a netqwrdk for diff cointainers to communicate diff microservices------
+#docker create network netwrk name (netwrk acts as a bridge b/w containers so request are forwareded by bridges to another microservice container
+docker run --it --init --name name of the container -p 2000:2000 --network netwrk name -v"(pwd):workdir -v vol_name:workdir/nodemodules image_name
+
+#docker-compose.yml
+version: "3"
+networks:
+  micro-net:
+    driver: bridge
+volumes:
+  api-gateway-node-modules:
+  booking-service-node-modules:
+  flights-service-node-modules:
+services:
+  api_gateway:
+    build: ./API-Gateway
+    networks:
+      - micro-net
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./API-Gateway:/developer/nodejs/api-gateway
+      - api-gateway-node-modules:/developer/nodejs/api-gateway/node_modules
+
+  python_service:
+    build: ./python-project
+    networks:
+      - micro-net
+    ports:
+      - "3005:3005"
+
+  flights_service:
+    build: ./Flights
+    networks:
+      - micro-net
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Flights:/developer/nodejs/flights_service
+      - flights-service-node-modules:/developer/nodejs/flights-service/node_modules
+
+  booking_service:
+    build: ./Flights-Booking-Service
+    networks:
+      - micro-net
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./Flights-Booking-Service:/developer/nodejs/booking_service
+      - booking-service-node-modules:/developer/nodejs/booking-service/node_modules
