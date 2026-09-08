@@ -121,3 +121,10 @@ services:
     volumes:
       - ./Flights-Booking-Service:/developer/nodejs/booking_service
       - booking-service-node-modules:/developer/nodejs/booking-service/node_modules
+$ docker compose up -d starts all the services defined in your docker-compose.yml:
+
+up — creates and starts the containers, networks, and volumes defined in the compose file
+-d — "detached" mode, meaning it runs in the background instead of tying up your terminal and streaming logs to it
+$docker compose down
+
+This stops and removes the containers and the default network created by up, but keeps your named volumes and images by default.
