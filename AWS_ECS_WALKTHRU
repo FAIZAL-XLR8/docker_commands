@@ -1,0 +1,6 @@
+1)Create a role from the root user from IAM dashboard roles optrions
+2)choose aws service
+3)usecase --> container search kr ke ecs choose krna and inside that choiose task excution
+4)create the role and name the role
+5)then come to created user aws coinsole not the root  search ecs contaibners and come out of iam dashboard to ecs containers and task definatripon choose kro
+5)select atsk role and teask executin tole ewith the name procvided earlier inb roles of 
