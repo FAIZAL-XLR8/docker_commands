@@ -1,0 +1,125 @@
+AWS Deployment Guide — IAM User Setup → ECR Push (via Docker Compose)
+Prerequisites
+AWS CLI installed (aws --version to check)
+Docker + Docker Compose installed
+Root or admin access to the AWS account (to create the IAM user)
+Step 1: Create a Separate IAM User (as root/admin)
+Log in to the AWS Console with the root/admin account.
+Go to IAM → Users → Create user.
+Give it a name (e.g. deploy-user).
+Console access — only enable this if a human needs to log into the AWS Console with this user. If this user is purely for CLI/Docker automation, skip it entirely (no console access needed).
+If you do enable it: AWS will let you set an auto-generated or custom password, and you can require the user to reset it on first login. There's no automatic emailed "login link" for a standard IAM user — you manually share the console sign-in URL (https://<account-id>.signin.aws.amazon.com/console) and the password with them.
+Permissions — attach only what's needed. For this workflow, at minimum:
+AmazonEC2ContainerRegistryFullAccess (ECR push/pull, repo management)
+AmazonECS_FullAccess (if you'll deploy to ECS later)
+For production, replace these AWS-managed policies with a custom least-privilege policy scoped to the specific repos/cluster — full access is broader than most deployment users need.
+Create the user.
+Step 2: Create an Access Key for This User
+
+Access keys are what let this user authenticate via CLI/SDK (separate from any console password).
+
+IAM → Users → select the user → Security credentials tab
+Under Access keys, click Create access key.
+Choose use case: Command Line Interface (CLI).
+AWS shows you the Access Key ID and Secret Access Key — copy both now. The secret is shown only once; you cannot retrieve it again later (only regenerate a new key).
+Step 3: Configure AWS CLI with This User's Credentials (on your laptop)
+powershell
+aws configure
+
+It will prompt for:
+
+AWS Access Key ID → paste from Step 2
+AWS Secret Access Key → paste from Step 2
+Default region name → e.g. ap-south-1
+Default output format → json (or leave blank)
+
+Note: This is the Access Key ID/Secret, not the console username/password from Step 1 — those are two different credential types for two different login methods (console vs. programmatic).
+
+Verify it worked:
+
+powershell
+aws sts get-caller-identity
+
+This should return the ARN of the IAM user you just configured — confirming the CLI is authenticated as that user, not root.
+
+Step 4: Create the ECR Repositories
+powershell
+aws ecr create-repository --repository-name my-backend
+aws ecr create-repository --repository-name my-frontend
+Step 5: Authenticate Docker with ECR
+powershell
+aws ecr get-login-password --region <YOUR_REGION> | docker login --username AWS --password-stdin <YOUR_ACCOUNT_ID>.dkr.ecr.<YOUR_REGION>.amazonaws.com
+
+This token expires after 12 hours — re-run it whenever you get an auth error on push.
+
+Step 6: Update docker-compose.yaml
+
+Point image: at your ECR repo URLs (keep build: too — Compose will build locally and tag it as this image name):
+
+yaml
+networks:
+  micro-networks:
+    driver: bridge
+volumes:
+  backend-node-modules:
+  frontend-node-modules:
+  mongo-data:
+  redis-data:
+services:
+  backend:
+    build: ./backend
+    image: <YOUR_ACCOUNT_ID>.dkr.ecr.<YOUR_REGION>.amazonaws.com/my-backend:latest
+    networks:
+      - micro-networks
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/mydb
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+
+  frontend:
+    build: ./frontend
+    image: <YOUR_ACCOUNT_ID>.dkr.ecr.<YOUR_REGION>.amazonaws.com/my-frontend:latest
+    networks:
+      - micro-networks
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    networks:
+      - micro-networks
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    networks:
+      - micro-networks
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+Step 7: Build the Images
+powershell
+docker compose build
+Step 8: Push to ECR
+powershell
+docker compose push
+
+This pushes my-backend and my-frontend to their respective ECR repos. mongodb and redis won't be pushed since they don't have a custom image: pointing to your ECR account (they're pulled from Docker Hub directly).
