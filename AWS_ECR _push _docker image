@@ -1,4 +1,4 @@
-AWS Deployment Guide — IAM User Setup → ECR Push (via Docker Compose)
+AWS Deployment Guide — IAM User Setup → ECR Push (via Docker build + Docker Compose)
 Prerequisites
 AWS CLI installed (aws --version to check)
 Docker + Docker Compose installed
