@@ -1,6 +1,82 @@
-1)Create a role from the root user from IAM dashboard roles optrions
-2)choose aws service
-3)usecase --> container search kr ke ecs choose krna and inside that choiose task excution
-4)create the role and name the role
-5)then come to created user aws coinsole not the root  search ecs contaibners and come out of iam dashboard to ecs containers and task definatripon choose kro
-5)select atsk role and teask executin tole ewith the name procvided earlier inb roles of 
+Correct ECS flow
+Root user → IAM → Roles
+Technically, you should not use the root user for normal AWS work.
+Create/manage the IAM role using an IAM admin/user with appropriate permissions.
+Create IAM Role
+Trusted entity: AWS service
+Use case: Elastic Container Service (ECS)
+Choose ECS Task / Task execution role depending on what you're creating.
+Attach the required permissions.
+Give the role a name.
+Switch to your normal IAM user
+Open ECS (Elastic Container Service).
+Create Task Definition
+ECS → Task Definitions → Create.
+Choose launch type/compute options as required.
+Configure:
+CPU
+Memory
+Container
+Docker image URI
+Port mappings, if your app needs them
+Select:
+Task role
+Task execution role
+Create the ECS Cluster
+ECS → Clusters → Create cluster.
+The cluster is basically the logical place where your ECS services/tasks run.
+Create a Service inside the cluster
+Select your Task Definition.
+Specify how many tasks you want running.
+Configure networking, load balancer, etc., if required.
+ECS deploys/runs the task
+The service launches tasks based on your task definition.
+Your flow, corrected
+IAM
+ ↓
+Create IAM Role(s)
+ ↓
+ECS
+ ↓
+Create Task Definition
+ ↓
+  ├── Docker Image
+  ├── CPU / Memory
+  ├── Container Port
+  ├── Task Role
+  └── Task Execution Role
+ ↓
+Create ECS Cluster
+ ↓
+Create Service
+ ↓
+Select Task Definition
+ ↓
+Configure networking / desired task count
+ ↓
+Deploy
+ ↓
+ECS runs your container
+One important distinction
+
+Task Definition ≠ running container.
+
+Think:
+
+Docker Image
+     ↓
+Task Definition  ← blueprint/configuration
+     ↓
+Task
+     ↓
+Running Container
+
+And:
+
+Cluster
+   ↓
+Service
+   ↓
+Tasks
+   ↓
+Containers
